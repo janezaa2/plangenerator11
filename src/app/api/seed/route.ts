@@ -5,7 +5,8 @@ import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const { secret } = await req.json();
-  if (secret !== process.env.SEED_SECRET) {
+  const seedSecret = (process.env.SEED_SECRET || "").replace(/^﻿/, "").trim();
+  if (secret !== seedSecret) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
