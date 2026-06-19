@@ -5,7 +5,7 @@ import Order from "@/models/Order";
 import { generateOrderNumber } from "@/lib/utils";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder");
 
 export async function GET() {
   const session = await auth();
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripe().paymentIntents.create({
     amount: Math.round(total * 100),
     currency: "usd",
     metadata: { userId: String(userId) },
