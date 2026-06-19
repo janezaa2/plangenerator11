@@ -10,7 +10,8 @@ export const authConfig: NextAuthConfig = {
       const isPublic =
         nextUrl.pathname === "/" ||
         nextUrl.pathname.startsWith("/auth") ||
-        nextUrl.pathname.startsWith("/api/auth");
+        nextUrl.pathname.startsWith("/api/auth") ||
+        nextUrl.pathname.startsWith("/api/seed");
       if (isPublic) return true;
       return isLoggedIn;
     },
