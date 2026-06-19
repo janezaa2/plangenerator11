@@ -10,8 +10,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
     Google({
-      clientId: process.env.AUTH_GOOGLE_ID!,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      clientId: (process.env.AUTH_GOOGLE_ID || "").replace(/^﻿/, "").trim(),
+      clientSecret: (process.env.AUTH_GOOGLE_SECRET || "").replace(/^﻿/, "").trim(),
     }),
     Credentials({
       name: "credentials",
