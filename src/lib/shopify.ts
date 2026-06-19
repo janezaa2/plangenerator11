@@ -1,20 +1,20 @@
 const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "0g1vap-z9.myshopify.com";
-const STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_TOKEN || "";
+const ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_TOKEN || "";
 
-const STOREFRONT_API_URL = `https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`;
+const ADMIN_API_URL = `https://${SHOPIFY_DOMAIN}/admin/api/2024-01/graphql.json`;
 
-async function storefrontQuery(query: string, variables?: Record<string, any>) {
-  const res = await fetch(STOREFRONT_API_URL, {
+async function adminQuery(query: string, variables?: Record<string, any>) {
+  const res = await fetch(ADMIN_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN,
+      "X-Shopify-Access-Token": ACCESS_TOKEN,
     },
     body: JSON.stringify({ query, variables }),
-    next: { revalidate: 300 },
+    cache: "no-store",
   });
 
-  if (!res.ok) throw new Error(`Shopify API error: ${res.status}`);
+  if (!res.ok) throw new Error(`Shopify Admin API error: ${res.status}`);
   const json = await res.json();
   if (json.errors) throw new Error(json.errors[0].message);
   return json.data;
@@ -32,9 +32,8 @@ const PRODUCTS_QUERY = `
           handle
           tags
           productType
-          priceRange {
+          priceRangeV2 {
             minVariantPrice { amount currencyCode }
-            maxVariantPrice { amount currencyCode }
           }
           compareAtPriceRange {
             minVariantPrice { amount currencyCode }
@@ -48,20 +47,11 @@ const PRODUCTS_QUERY = `
                 id
                 title
                 sku
-                price { amount currencyCode }
-                compareAtPrice { amount currencyCode }
-                availableForSale
-                quantityAvailable
+                price
+                compareAtPrice
+                inventoryQuantity
               }
             }
-          }
-          metafields(identifiers: [
-            { namespace: "nutrition", key: "calories" }
-            { namespace: "nutrition", key: "protein" }
-            { namespace: "nutrition", key: "carbs" }
-            { namespace: "nutrition", key: "fat" }
-          ]) {
-            key namespace value
           }
         }
       }
@@ -88,7 +78,7 @@ export interface ShopifyProduct {
   reviewCount: number;
 }
 
-function mapProductType(type: string, tags: string[]): string {
+function mapCategory(type: string, tags: string[]): string {
   const t = (type || "").toLowerCase();
   const allTags = tags.map((x) => x.toLowerCase()).join(" ");
 
@@ -107,19 +97,17 @@ export async function fetchAllShopifyProducts(): Promise<ShopifyProduct[]> {
   let hasNext = true;
 
   while (hasNext) {
-    const data = await storefrontQuery(PRODUCTS_QUERY, { first: 50, after: cursor });
+    const data = await adminQuery(PRODUCTS_QUERY, { first: 50, after: cursor });
     const { edges, pageInfo } = data.products;
 
     for (const { node } of edges) {
       const firstVariant = node.variants.edges[0]?.node;
-      const price = parseFloat(firstVariant?.price?.amount || node.priceRange.minVariantPrice.amount);
-      const compareAt = parseFloat(
-        firstVariant?.compareAtPrice?.amount ||
-        node.compareAtPriceRange?.minVariantPrice?.amount || "0"
-      );
+      const price = parseFloat(firstVariant?.price || node.priceRangeV2.minVariantPrice.amount);
+      const compareAt = parseFloat(firstVariant?.compareAtPrice || node.compareAtPriceRange?.minVariantPrice?.amount || "0");
       const images = node.images.edges.map((e: any) => e.node.url);
-      const meta = Object.fromEntries(
-        (node.metafields || []).filter(Boolean).map((m: any) => [m.key, parseFloat(m.value)])
+      const stock = node.variants.edges.reduce(
+        (sum: number, e: any) => sum + (e.node.inventoryQuantity || 0),
+        0
       );
 
       products.push({
@@ -127,23 +115,15 @@ export async function fetchAllShopifyProducts(): Promise<ShopifyProduct[]> {
         handle: node.handle,
         name: node.title,
         description: node.descriptionHtml.replace(/<[^>]+>/g, "").trim(),
-        category: mapProductType(node.productType, node.tags),
+        category: mapCategory(node.productType, node.tags),
         price,
         comparePrice: compareAt > 0 ? compareAt : undefined,
         images,
         supplierSku: firstVariant?.sku || node.handle,
         supplierPrice: price * 0.6,
-        stock: node.variants.edges.reduce(
-          (sum: number, e: any) => sum + (e.node.quantityAvailable || 0),
-          0
-        ),
+        stock,
         tags: node.tags,
-        nutritionInfo: {
-          calories: meta.calories,
-          protein: meta.protein,
-          carbs: meta.carbs,
-          fat: meta.fat,
-        },
+        nutritionInfo: {},
         isActive: true,
         rating: 0,
         reviewCount: 0,
