@@ -4,6 +4,7 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import MealPlan from "@/models/MealPlan";
 import { Users, ShoppingBag, Package, UtensilsCrossed, DollarSign } from "lucide-react";
+import ShopifySyncButton from "@/components/admin/ShopifySyncButton";
 
 export default async function AdminDashboard() {
   await connectDB();
@@ -31,9 +32,12 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-500">Platform overview and management</p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-500">Platform overview and management</p>
+        </div>
+        <ShopifySyncButton />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
