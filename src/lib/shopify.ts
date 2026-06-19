@@ -1,5 +1,5 @@
 const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "0g1vap-z9.myshopify.com";
-const STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "";
+const STOREFRONT_TOKEN = process.env.SHOPIFY_STOREFRONT_TOKEN || "";
 
 const STOREFRONT_API_URL = `https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`;
 

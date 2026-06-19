@@ -10,7 +10,7 @@ export async function POST() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+  if (!process.env.SHOPIFY_STOREFRONT_TOKEN) {
     return NextResponse.json(
       { error: "SHOPIFY_STOREFRONT_ACCESS_TOKEN not configured" },
       { status: 503 }
